@@ -134,15 +134,8 @@ saveConfig.addEventListener("click", async () => {
   await saveConfigToProject();
 });
 
-downloadConfig.addEventListener("click", () => {
-  const payload = JSON.stringify(state.fixConfig, null, 2);
-  const blob = new Blob([payload], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "fix_requests.json";
-  link.click();
-  URL.revokeObjectURL(url);
+downloadConfig.addEventListener("click", async () => {
+  await exportConfigJson();
 });
 
 tailColor.addEventListener("input", () => {
@@ -336,6 +329,53 @@ async function saveConfigToProject() {
     setSaveStatus("Save failed. Use JSON download instead.");
     console.error(error);
   }
+}
+
+async function exportConfigJson() {
+  setSaveStatus("Exporting JSON...");
+  try {
+    const response = await fetch("/api/export-config", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify(state.fixConfig)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Export failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    await copyConfigToClipboard();
+    setSaveStatus(`Exported ${result.files[0]}`);
+  } catch (error) {
+    downloadConfigAsFallback();
+    setSaveStatus("Downloaded JSON fallback");
+    console.error(error);
+  }
+}
+
+async function copyConfigToClipboard() {
+  if (!navigator.clipboard?.writeText) return;
+  try {
+    await navigator.clipboard.writeText(JSON.stringify(state.fixConfig, null, 2));
+  } catch {
+    // Exporting the project file is the important part; clipboard is a convenience.
+  }
+}
+
+function downloadConfigAsFallback() {
+  const payload = JSON.stringify(state.fixConfig, null, 2);
+  const blob = new Blob([payload], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "fix_requests.json";
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 function setSaveStatus(message) {
