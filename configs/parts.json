@@ -16,7 +16,7 @@
     },
     "tail_tip_heart": {
       "type": "parametric_overlay",
-      "shape": "heart_tail_tip",
+      "shape": "heart_like_tail_tip",
       "material": {
         "base_color": "#ff3a18",
         "emission_color": "#ff5a24",

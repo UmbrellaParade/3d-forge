@@ -300,40 +300,44 @@ function createHeartTailTip() {
   });
   fillMat.userData.emissiveScale = 0.25;
 
-  const heartShape = createHeartShape();
-  const fill = new THREE.Mesh(new THREE.ShapeGeometry(heartShape, 48), fillMat);
-  fill.position.z = -0.012;
-  fill.scale.set(0.72, 0.84, 1);
+  const tipRoot = new THREE.Group();
+  tipRoot.rotation.z = THREE.MathUtils.degToRad(18);
+  tipRoot.position.set(0.05, 0.03, 0);
 
-  const outlinePoints = heartShape.getPoints(120).map((point) => new THREE.Vector3(point.x * 0.72, point.y * 0.84, 0));
+  const tipShape = createHeartLikeTailShape();
+  const fill = new THREE.Mesh(new THREE.ShapeGeometry(tipShape, 48), fillMat);
+  fill.position.z = -0.012;
+
+  const outlinePoints = tipShape.getPoints(120).map((point) => new THREE.Vector3(point.x, point.y, 0));
   const outlineCurve = new THREE.CatmullRomCurve3(outlinePoints, true, "centripetal");
-  const outline = new THREE.Mesh(new THREE.TubeGeometry(outlineCurve, 160, 0.018, 12, true), glowMat);
+  const outline = new THREE.Mesh(new THREE.TubeGeometry(outlineCurve, 160, 0.016, 12, true), glowMat);
 
   const core = new THREE.Mesh(new THREE.TubeGeometry(outlineCurve, 160, 0.007, 8, true), hotCoreMat);
   core.position.z = 0.003;
 
   const stemCurve = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(0, -0.23, 0),
-    new THREE.Vector3(-0.03, -0.31, 0),
-    new THREE.Vector3(-0.08, -0.39, 0),
-    new THREE.Vector3(-0.15, -0.46, 0)
+    new THREE.Vector3(-0.45, -0.18, 0),
+    new THREE.Vector3(-0.34, -0.13, 0),
+    new THREE.Vector3(-0.24, -0.07, 0),
+    new THREE.Vector3(-0.15, 0.01, 0)
   ]);
   const stem = new THREE.Mesh(new THREE.TubeGeometry(stemCurve, 44, 0.016, 10, false), glowMat);
   const stemCore = new THREE.Mesh(new THREE.TubeGeometry(stemCurve, 44, 0.006, 8, false), hotCoreMat);
   stemCore.position.z = 0.003;
 
-  group.add(fill, outline, core, stem, stemCore);
+  tipRoot.add(fill, outline, core);
+  group.add(stem, stemCore, tipRoot);
   group.userData.materials = [glowMat, hotCoreMat, fillMat];
   return group;
 }
 
-function createHeartShape() {
+function createHeartLikeTailShape() {
   const shape = new THREE.Shape();
-  shape.moveTo(0, -0.24);
-  shape.bezierCurveTo(-0.28, -0.06, -0.34, 0.16, -0.18, 0.28);
-  shape.bezierCurveTo(-0.08, 0.36, -0.01, 0.28, 0, 0.17);
-  shape.bezierCurveTo(0.01, 0.28, 0.08, 0.36, 0.18, 0.28);
-  shape.bezierCurveTo(0.34, 0.16, 0.28, -0.06, 0, -0.24);
+  shape.moveTo(0.21, 0.24);
+  shape.bezierCurveTo(0.06, 0.14, -0.07, 0.03, -0.13, -0.09);
+  shape.bezierCurveTo(-0.2, -0.22, -0.03, -0.26, 0.06, -0.14);
+  shape.bezierCurveTo(0.08, -0.23, 0.22, -0.24, 0.24, -0.1);
+  shape.bezierCurveTo(0.27, 0.04, 0.24, 0.15, 0.21, 0.24);
   return shape;
 }
 
