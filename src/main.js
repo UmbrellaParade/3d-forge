@@ -74,7 +74,7 @@ let activeModelUrl = null;
 const controlElements = new Map();
 
 const state = {
-  overlayVisible: true,
+  overlayVisible: false,
   fixConfig: {
     tail: {
       tip_shape: "devil",

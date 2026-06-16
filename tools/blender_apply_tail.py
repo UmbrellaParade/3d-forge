@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import math
-import sys
+import struct
 from pathlib import Path
 
 import bpy
@@ -68,11 +68,12 @@ def heart_like_loop_points() -> list[Vector]:
 
 def stem_points() -> list[Vector]:
     return [
+        Vector((-1.75, 0.62, 0.04)),
+        Vector((-1.42, 0.34, 0.03)),
+        Vector((-1.06, 0.08, 0.02)),
+        Vector((-0.72, -0.10, 0.01)),
         Vector((-0.45, -0.18, 0)),
-        Vector((-0.38, -0.15, 0)),
-        Vector((-0.31, -0.11, 0)),
-        Vector((-0.24, -0.07, 0)),
-        Vector((-0.18, -0.02, 0)),
+        Vector((-0.24, -0.08, 0)),
         Vector((-0.13, 0.01, 0)),
     ]
 
@@ -147,13 +148,67 @@ def add_tail_tip(config: dict):
     glow = make_material("codex_tail_neon_red", (1.0, 0.12, 0.04, 1.0), 1.8)
     core = make_material("codex_tail_hot_core", (1.0, 0.72, 0.25, 1.0), 1.2)
 
-    loop = make_tube_mesh("codex_tail_heart_like_loop", heart_like_loop_points(), 0.016, glow, transform, True)
-    loop_core = make_tube_mesh("codex_tail_heart_like_core", heart_like_loop_points(), 0.006, core, transform, True, 8)
-    stem = make_tube_mesh("codex_tail_heart_like_stem", stem_points(), 0.016, glow, transform, False)
-    stem_core = make_tube_mesh("codex_tail_heart_like_stem_core", stem_points(), 0.006, core, transform, False, 8)
+    loop = make_tube_mesh("codex_tail_heart_like_loop", heart_like_loop_points(), 0.018, glow, transform, True)
+    loop_core = make_tube_mesh("codex_tail_heart_like_core", heart_like_loop_points(), 0.007, core, transform, True, 8)
+    stem = make_tube_mesh("codex_tail_heart_like_stem", stem_points(), 0.019, glow, transform, False)
+    stem_core = make_tube_mesh("codex_tail_heart_like_stem_core", stem_points(), 0.007, core, transform, False, 8)
 
     for obj in [loop, loop_core, stem, stem_core]:
         obj.parent = root
+
+
+def patch_glb_materials(path: Path) -> None:
+    raw = path.read_bytes()
+    if raw[:4] != b"glTF":
+        raise ValueError(f"Not a GLB file: {path}")
+
+    version, total_length = struct.unpack_from("<II", raw, 4)
+    if version != 2:
+        raise ValueError(f"Unsupported GLB version: {version}")
+
+    offset = 12
+    chunks = []
+    while offset < total_length:
+        chunk_length, chunk_type = struct.unpack_from("<I4s", raw, offset)
+        offset += 8
+        chunk_data = raw[offset : offset + chunk_length]
+        offset += chunk_length
+        chunks.append((chunk_type, chunk_data))
+
+    gltf = json.loads(chunks[0][1].decode("utf-8"))
+    for material in gltf.get("materials", []):
+        name = material.get("name", "")
+        if name == "codex_tail_neon_red":
+            material["pbrMetallicRoughness"] = {
+                "baseColorFactor": [1.0, 0.08, 0.02, 1.0],
+                "metallicFactor": 0,
+                "roughnessFactor": 0.22,
+            }
+            material["emissiveFactor"] = [1.0, 0.16, 0.03]
+            material["doubleSided"] = True
+        elif name == "codex_tail_hot_core":
+            material["pbrMetallicRoughness"] = {
+                "baseColorFactor": [1.0, 0.72, 0.22, 1.0],
+                "metallicFactor": 0,
+                "roughnessFactor": 0.18,
+            }
+            material["emissiveFactor"] = [1.0, 0.45, 0.08]
+            material["doubleSided"] = True
+
+    json_bytes = json.dumps(gltf, separators=(",", ":")).encode("utf-8")
+    json_padding = (4 - len(json_bytes) % 4) % 4
+    json_chunk = json_bytes + b" " * json_padding
+
+    rebuilt_chunks = [(b"JSON", json_chunk)] + chunks[1:]
+    new_length = 12 + sum(8 + len(chunk_data) for _, chunk_data in rebuilt_chunks)
+
+    output = bytearray()
+    output += b"glTF"
+    output += struct.pack("<II", 2, new_length)
+    for chunk_type, chunk_data in rebuilt_chunks:
+        output += struct.pack("<I4s", len(chunk_data), chunk_type)
+        output += chunk_data
+    path.write_bytes(output)
 
 
 def main() -> None:
@@ -177,6 +232,7 @@ def main() -> None:
         export_apply=True,
         export_yup=True,
     )
+    patch_glb_materials(OUTPUT_GLB)
     print(f"wrote={OUTPUT_GLB}")
 
 
