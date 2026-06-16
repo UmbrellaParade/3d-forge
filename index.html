@@ -45,15 +45,22 @@
             <input id="tailColor" type="color" value="#ff3a18" />
           </label>
           <div class="button-row">
+            <button id="saveConfig" type="button" title="Save fix config">
+              <i data-lucide="save"></i>
+              <span>Save</span>
+            </button>
             <button id="downloadConfig" type="button" title="Download fix config">
               <i data-lucide="download"></i>
               <span>JSON</span>
             </button>
+          </div>
+          <div class="button-row">
             <button id="toggleOverlay" type="button" title="Toggle overlay">
               <i data-lucide="eye"></i>
               <span>Overlay</span>
             </button>
           </div>
+          <p id="saveStatus" class="save-status" aria-live="polite"></p>
         </section>
 
         <section class="panel compact">

@@ -1,5 +1,5 @@
 import "./styles.css";
-import { createIcons, Download, Eye, RotateCcw, Upload } from "lucide";
+import { createIcons, Download, Eye, RotateCcw, Save, Upload } from "lucide";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
@@ -9,6 +9,7 @@ createIcons({
     Download,
     Eye,
     RotateCcw,
+    Save,
     Upload
   }
 });
@@ -20,9 +21,11 @@ const overlayLabel = document.querySelector("#overlayLabel");
 const glbFile = document.querySelector("#glbFile");
 const resetCamera = document.querySelector("#resetCamera");
 const toggleOverlay = document.querySelector("#toggleOverlay");
+const saveConfig = document.querySelector("#saveConfig");
 const downloadConfig = document.querySelector("#downloadConfig");
 const tailColor = document.querySelector("#tailColor");
 const tailControls = document.querySelector("#tailControls");
+const saveStatus = document.querySelector("#saveStatus");
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color("#151816");
@@ -125,6 +128,10 @@ resetCamera.addEventListener("click", () => {
 toggleOverlay.addEventListener("click", () => {
   state.overlayVisible = !state.overlayVisible;
   tailGroup.visible = state.overlayVisible;
+});
+
+saveConfig.addEventListener("click", async () => {
+  await saveConfigToProject();
 });
 
 downloadConfig.addEventListener("click", () => {
@@ -306,6 +313,34 @@ function applyTailConfig() {
   tailGroup.userData.material.emissive.set(color).multiplyScalar(0.32);
   overlayLabel.textContent = tail.tip_shape === "devil" ? "tail.tip devil" : "tail.tip custom";
   refreshControls();
+}
+
+async function saveConfigToProject() {
+  setSaveStatus("Saving...");
+  try {
+    const response = await fetch("/api/save-config", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify(state.fixConfig)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Save failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    setSaveStatus(`Saved ${result.saved_at}`);
+  } catch (error) {
+    setSaveStatus("Save failed. Use JSON download instead.");
+    console.error(error);
+  }
+}
+
+function setSaveStatus(message) {
+  if (!saveStatus) return;
+  saveStatus.textContent = message;
 }
 
 function fitCameraToObject(object) {

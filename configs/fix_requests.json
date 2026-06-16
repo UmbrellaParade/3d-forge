@@ -2,8 +2,16 @@
   "tail": {
     "tip_shape": "devil",
     "tip_color": "#ff3a18",
-    "position": [0, 0.85, -0.85],
-    "rotation": [0, 0, 0],
+    "position": [
+      0,
+      0.85,
+      -0.85
+    ],
+    "rotation": [
+      0,
+      0,
+      0
+    ],
     "scale": 1
   },
   "horns": {

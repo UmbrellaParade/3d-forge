@@ -111,6 +111,12 @@ h2 {
   line-height: 1.45;
 }
 
+.save-status {
+  min-height: 18px;
+  color: #8fd6c8;
+  font-size: 0.78rem;
+}
+
 .button-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
