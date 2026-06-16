@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>3d-forge</title>
+  </head>
+  <body>
+    <div id="app">
+      <aside class="sidebar" aria-label="Controls">
+        <header class="brand">
+          <div>
+            <p class="eyebrow">Codex 3D workspace</p>
+            <h1>3d-forge</h1>
+          </div>
+          <span id="modelStatus" class="status">Loading</span>
+        </header>
+
+        <section class="panel">
+          <h2>Model</h2>
+          <div class="button-row">
+            <label class="file-button">
+              <i data-lucide="upload"></i>
+              <span>Load GLB</span>
+              <input id="glbFile" type="file" accept=".glb,.gltf" />
+            </label>
+            <button id="resetCamera" type="button" title="Reset camera">
+              <i data-lucide="rotate-ccw"></i>
+              <span>Reset</span>
+            </button>
+          </div>
+          <div class="meta-grid">
+            <span>Source</span>
+            <strong id="sourceLabel">/models/current.glb</strong>
+            <span>Overlay</span>
+            <strong id="overlayLabel">tail.tip</strong>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Tail Tip</h2>
+          <div class="control-grid" id="tailControls"></div>
+          <label class="color-row">
+            <span>Color</span>
+            <input id="tailColor" type="color" value="#ff3a18" />
+          </label>
+          <div class="button-row">
+            <button id="downloadConfig" type="button" title="Download fix config">
+              <i data-lucide="download"></i>
+              <span>JSON</span>
+            </button>
+            <button id="toggleOverlay" type="button" title="Toggle overlay">
+              <i data-lucide="eye"></i>
+              <span>Overlay</span>
+            </button>
+          </div>
+        </section>
+
+        <section class="panel compact">
+          <h2>Codex Notes</h2>
+          <p id="notes">
+            Edit configs, run stage, then inspect the GLB here.
+          </p>
+        </section>
+      </aside>
+
+      <main class="viewport">
+        <canvas id="scene"></canvas>
+        <div class="viewport-hud">
+          <span>Left drag: orbit</span>
+          <span>Wheel: zoom</span>
+          <span>Right drag: pan</span>
+        </div>
+      </main>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

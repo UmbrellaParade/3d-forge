@@ -1,0 +1,29 @@
+{
+  "project": "Umbrella Parade",
+  "character_name": "unnamed_sd_character",
+  "version": "v0",
+  "style": {
+    "body_type": "sd_chibi",
+    "head_ratio": "large_but_not_too_large",
+    "mood_keywords": ["rock", "rain", "parade", "devil", "neon"]
+  },
+  "source_images": {
+    "front": "input/character_front.png",
+    "back": "input/character_back.png",
+    "left": "input/character_left.png",
+    "right": "input/character_right.png",
+    "references_dir": "input/references"
+  },
+  "output": {
+    "draft_glb": "output/draft.glb",
+    "fixed_glb": "output/fixed.glb"
+  },
+  "do_not": [
+    "make_face_too_young",
+    "make_head_too_large",
+    "omit_tail_or_wings",
+    "move_horns_too_far_from_design",
+    "make_umbrella_too_small",
+    "simplify_costume_too_much"
+  ]
+}

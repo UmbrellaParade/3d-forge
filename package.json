@@ -1,0 +1,22 @@
+{
+  "name": "3d-forge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Codex-driven 3D generation and repair workspace.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "stage": "python tools/stage_viewer_assets.py",
+    "inspect": "python tools/inspect_glb.py",
+    "generate": "python tools/generate_3d.py",
+    "export": "python tools/export_glb.py"
+  },
+  "dependencies": {
+    "lucide": "^0.468.0",
+    "three": "^0.171.0",
+    "vite": "^8.0.16"
+  },
+  "devDependencies": {}
+}

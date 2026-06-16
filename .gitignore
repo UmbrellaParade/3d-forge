@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.vite/
+*.log
+
+public/models/current.glb
+public/runtime/*.json
+output/*.glb
+output/*.json
+output/previews/*
+input/*.glb
+input/*.png
+input/*.jpg
+input/*.jpeg
+input/references/*
+
+!.gitkeep

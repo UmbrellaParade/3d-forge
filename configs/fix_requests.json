@@ -1,0 +1,21 @@
+{
+  "tail": {
+    "tip_shape": "devil",
+    "tip_color": "#ff3a18",
+    "position": [0, 0.85, -0.85],
+    "rotation": [0, 0, 0],
+    "scale": 1
+  },
+  "horns": {
+    "avoid_umbrella": true,
+    "move": "slightly_outward"
+  },
+  "umbrella": {
+    "keep_large": true,
+    "position": "above_head_without_intersection"
+  },
+  "notes": [
+    "Codex should edit this file from natural-language repair requests.",
+    "The viewer reads staged copies from public/runtime."
+  ]
+}

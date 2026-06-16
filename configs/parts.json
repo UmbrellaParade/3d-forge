@@ -1,0 +1,26 @@
+{
+  "parts": {
+    "tail_tip_devil": {
+      "type": "parametric_overlay",
+      "shape": "devil_tail_tip",
+      "material": {
+        "base_color": "#ff3a18",
+        "emission_color": "#ff5a24",
+        "emission_strength": 0.75
+      },
+      "default_transform": {
+        "position": [0, 0.85, -0.85],
+        "rotation": [0, 0, 0],
+        "scale": 1
+      }
+    },
+    "horn_clearance": {
+      "type": "repair_intent",
+      "description": "Keep horns visible while avoiding umbrella intersection."
+    },
+    "umbrella": {
+      "type": "tracked_prop",
+      "description": "Large umbrella prop above the head, clear of horns and wings."
+    }
+  }
+}
