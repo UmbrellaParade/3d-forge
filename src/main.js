@@ -269,49 +269,72 @@ function createHeartTailTip() {
   group.name = "tail.tip.overlay";
   group.userData.shape = "heart";
 
-  const bodyMat = createTailMaterial();
-  const outlineMat = new THREE.MeshStandardMaterial({
+  const glowMat = new THREE.MeshStandardMaterial({
     color: "#ff3a18",
     emissive: "#ff3a18",
-    emissiveIntensity: 1.35,
-    roughness: 0.28,
+    emissiveIntensity: 1.8,
+    roughness: 0.2,
     metalness: 0.02
   });
-  bodyMat.userData.emissiveScale = 0.42;
-  outlineMat.userData.emissiveScale = 0.95;
+  glowMat.userData.emissiveScale = 1.0;
 
-  const shape = new THREE.Shape();
-  shape.moveTo(0, -0.27);
-  shape.bezierCurveTo(-0.32, -0.06, -0.34, 0.2, -0.16, 0.29);
-  shape.bezierCurveTo(-0.07, 0.34, -0.01, 0.28, 0, 0.18);
-  shape.bezierCurveTo(0.01, 0.28, 0.07, 0.34, 0.16, 0.29);
-  shape.bezierCurveTo(0.34, 0.2, 0.32, -0.06, 0, -0.27);
+  const hotCoreMat = new THREE.MeshStandardMaterial({
+    color: "#ffd37a",
+    emissive: "#ff8a2a",
+    emissiveIntensity: 1.4,
+    roughness: 0.18,
+    metalness: 0
+  });
+  hotCoreMat.userData.emissiveScale = 0.7;
 
-  const body = new THREE.Mesh(
-    new THREE.ExtrudeGeometry(shape, {
-      depth: 0.08,
-      bevelEnabled: true,
-      bevelSegments: 8,
-      bevelSize: 0.018,
-      bevelThickness: 0.018,
-      curveSegments: 36
-    }),
-    bodyMat
-  );
-  body.position.z = -0.04;
-  body.scale.set(0.9, 1, 0.9);
+  const fillMat = new THREE.MeshStandardMaterial({
+    color: "#ff3a18",
+    emissive: "#ff3a18",
+    emissiveIntensity: 0.45,
+    roughness: 0.5,
+    metalness: 0,
+    transparent: true,
+    opacity: 0.18,
+    depthWrite: false,
+    side: THREE.DoubleSide
+  });
+  fillMat.userData.emissiveScale = 0.25;
 
-  const outlinePoints = shape.getPoints(96).map((point) => new THREE.Vector3(point.x, point.y, 0.045));
+  const heartShape = createHeartShape();
+  const fill = new THREE.Mesh(new THREE.ShapeGeometry(heartShape, 48), fillMat);
+  fill.position.z = -0.012;
+  fill.scale.set(0.72, 0.84, 1);
+
+  const outlinePoints = heartShape.getPoints(120).map((point) => new THREE.Vector3(point.x * 0.72, point.y * 0.84, 0));
   const outlineCurve = new THREE.CatmullRomCurve3(outlinePoints, true, "centripetal");
-  const outline = new THREE.Mesh(new THREE.TubeGeometry(outlineCurve, 144, 0.025, 12, true), outlineMat);
-  outline.scale.copy(body.scale);
+  const outline = new THREE.Mesh(new THREE.TubeGeometry(outlineCurve, 160, 0.018, 12, true), glowMat);
 
-  const socket = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.07, 0.22, 24), bodyMat);
-  socket.position.y = -0.36;
+  const core = new THREE.Mesh(new THREE.TubeGeometry(outlineCurve, 160, 0.007, 8, true), hotCoreMat);
+  core.position.z = 0.003;
 
-  group.add(body, outline, socket);
-  group.userData.materials = [bodyMat, outlineMat];
+  const stemCurve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0, -0.23, 0),
+    new THREE.Vector3(-0.03, -0.31, 0),
+    new THREE.Vector3(-0.08, -0.39, 0),
+    new THREE.Vector3(-0.15, -0.46, 0)
+  ]);
+  const stem = new THREE.Mesh(new THREE.TubeGeometry(stemCurve, 44, 0.016, 10, false), glowMat);
+  const stemCore = new THREE.Mesh(new THREE.TubeGeometry(stemCurve, 44, 0.006, 8, false), hotCoreMat);
+  stemCore.position.z = 0.003;
+
+  group.add(fill, outline, core, stem, stemCore);
+  group.userData.materials = [glowMat, hotCoreMat, fillMat];
   return group;
+}
+
+function createHeartShape() {
+  const shape = new THREE.Shape();
+  shape.moveTo(0, -0.24);
+  shape.bezierCurveTo(-0.28, -0.06, -0.34, 0.16, -0.18, 0.28);
+  shape.bezierCurveTo(-0.08, 0.36, -0.01, 0.28, 0, 0.17);
+  shape.bezierCurveTo(0.01, 0.28, 0.08, 0.36, 0.18, 0.28);
+  shape.bezierCurveTo(0.34, 0.16, 0.28, -0.06, 0, -0.24);
+  return shape;
 }
 
 function buildControls() {
