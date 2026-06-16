@@ -23,6 +23,7 @@ const resetCamera = document.querySelector("#resetCamera");
 const toggleOverlay = document.querySelector("#toggleOverlay");
 const saveConfig = document.querySelector("#saveConfig");
 const downloadConfig = document.querySelector("#downloadConfig");
+const tailShape = document.querySelector("#tailShape");
 const tailColor = document.querySelector("#tailColor");
 const tailControls = document.querySelector("#tailControls");
 const saveStatus = document.querySelector("#saveStatus");
@@ -93,7 +94,7 @@ const state = {
   }
 };
 
-const tailGroup = createDevilTailTip();
+let tailGroup = createTailTipGroup(state.fixConfig.tail.tip_shape);
 scene.add(tailGroup);
 
 const sliders = [
@@ -136,6 +137,11 @@ saveConfig.addEventListener("click", async () => {
 
 downloadConfig.addEventListener("click", async () => {
   await exportConfigJson();
+});
+
+tailShape.addEventListener("change", () => {
+  state.fixConfig.tail.tip_shape = tailShape.value;
+  applyTailConfig();
 });
 
 tailColor.addEventListener("input", () => {
@@ -213,17 +219,28 @@ function showPlaceholder() {
   updatePositionControlRanges(activeModel);
 }
 
-function createDevilTailTip() {
-  const group = new THREE.Group();
-  group.name = "tail.tip.overlay";
+function createTailTipGroup(shape) {
+  return normalizeTailShape(shape) === "heart" ? createHeartTailTip() : createDevilTailTip();
+}
 
-  const mat = new THREE.MeshStandardMaterial({
+function createTailMaterial() {
+  const material = new THREE.MeshStandardMaterial({
     color: "#ff3a18",
     emissive: "#541204",
     emissiveIntensity: 0.75,
     roughness: 0.42,
     metalness: 0.04
   });
+  material.userData.emissiveScale = 0.32;
+  return material;
+}
+
+function createDevilTailTip() {
+  const group = new THREE.Group();
+  group.name = "tail.tip.overlay";
+  group.userData.shape = "devil";
+
+  const mat = createTailMaterial();
 
   const center = new THREE.Mesh(new THREE.SphereGeometry(0.16, 32, 16), mat);
   center.scale.set(1.15, 0.85, 0.78);
@@ -243,7 +260,57 @@ function createDevilTailTip() {
   socket.position.y = -0.18;
 
   group.add(center, top, left, right, socket);
-  group.userData.material = mat;
+  group.userData.materials = [mat];
+  return group;
+}
+
+function createHeartTailTip() {
+  const group = new THREE.Group();
+  group.name = "tail.tip.overlay";
+  group.userData.shape = "heart";
+
+  const bodyMat = createTailMaterial();
+  const outlineMat = new THREE.MeshStandardMaterial({
+    color: "#ff3a18",
+    emissive: "#ff3a18",
+    emissiveIntensity: 1.35,
+    roughness: 0.28,
+    metalness: 0.02
+  });
+  bodyMat.userData.emissiveScale = 0.42;
+  outlineMat.userData.emissiveScale = 0.95;
+
+  const shape = new THREE.Shape();
+  shape.moveTo(0, -0.27);
+  shape.bezierCurveTo(-0.32, -0.06, -0.34, 0.2, -0.16, 0.29);
+  shape.bezierCurveTo(-0.07, 0.34, -0.01, 0.28, 0, 0.18);
+  shape.bezierCurveTo(0.01, 0.28, 0.07, 0.34, 0.16, 0.29);
+  shape.bezierCurveTo(0.34, 0.2, 0.32, -0.06, 0, -0.27);
+
+  const body = new THREE.Mesh(
+    new THREE.ExtrudeGeometry(shape, {
+      depth: 0.08,
+      bevelEnabled: true,
+      bevelSegments: 8,
+      bevelSize: 0.018,
+      bevelThickness: 0.018,
+      curveSegments: 36
+    }),
+    bodyMat
+  );
+  body.position.z = -0.04;
+  body.scale.set(0.9, 1, 0.9);
+
+  const outlinePoints = shape.getPoints(96).map((point) => new THREE.Vector3(point.x, point.y, 0.045));
+  const outlineCurve = new THREE.CatmullRomCurve3(outlinePoints, true, "centripetal");
+  const outline = new THREE.Mesh(new THREE.TubeGeometry(outlineCurve, 144, 0.025, 12, true), outlineMat);
+  outline.scale.copy(body.scale);
+
+  const socket = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.07, 0.22, 24), bodyMat);
+  socket.position.y = -0.36;
+
+  group.add(body, outline, socket);
+  group.userData.materials = [bodyMat, outlineMat];
   return group;
 }
 
@@ -296,16 +363,52 @@ function refreshControls() {
 
 function applyTailConfig() {
   const tail = state.fixConfig.tail;
+  const shape = normalizeTailShape(tail.tip_shape);
+  if (tailGroup.userData.shape !== shape) {
+    replaceTailGroup(shape);
+  }
   tailGroup.position.fromArray(tail.position ?? [0, 0.85, -0.85]);
   tailGroup.rotation.fromArray(tail.rotation ?? [0, 0, 0]);
   tailGroup.scale.setScalar(tail.scale ?? 1);
   tailGroup.visible = state.overlayVisible;
   const color = tail.tip_color ?? "#ff3a18";
+  tailShape.value = shape;
   tailColor.value = color;
-  tailGroup.userData.material.color.set(color);
-  tailGroup.userData.material.emissive.set(color).multiplyScalar(0.32);
-  overlayLabel.textContent = tail.tip_shape === "devil" ? "tail.tip devil" : "tail.tip custom";
+  updateTailMaterials(color);
+  overlayLabel.textContent = `tail.tip ${shape}`;
   refreshControls();
+}
+
+function replaceTailGroup(shape) {
+  const previous = tailGroup;
+  tailGroup = createTailTipGroup(shape);
+  tailGroup.position.copy(previous.position);
+  tailGroup.rotation.copy(previous.rotation);
+  tailGroup.scale.copy(previous.scale);
+  tailGroup.visible = previous.visible;
+  scene.remove(previous);
+  disposeGroup(previous);
+  scene.add(tailGroup);
+}
+
+function updateTailMaterials(color) {
+  for (const material of tailGroup.userData.materials ?? []) {
+    material.color.set(color);
+    material.emissive.set(color).multiplyScalar(material.userData.emissiveScale ?? 0.32);
+  }
+}
+
+function disposeGroup(group) {
+  group.traverse((node) => {
+    if (node.geometry) node.geometry.dispose();
+  });
+  for (const material of group.userData.materials ?? []) {
+    material.dispose();
+  }
+}
+
+function normalizeTailShape(shape) {
+  return shape === "heart" ? "heart" : "devil";
 }
 
 async function saveConfigToProject() {

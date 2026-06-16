@@ -14,6 +14,28 @@
         "scale": 1
       }
     },
+    "tail_tip_heart": {
+      "type": "parametric_overlay",
+      "shape": "heart_tail_tip",
+      "material": {
+        "base_color": "#ff3a18",
+        "emission_color": "#ff5a24",
+        "emission_strength": 1.1
+      },
+      "default_transform": {
+        "position": [
+          0.56,
+          -0.49,
+          0.08
+        ],
+        "rotation": [
+          0,
+          -0.24434609527920614,
+          -1.0471975511965976
+        ],
+        "scale": 0.33
+      }
+    },
     "horn_clearance": {
       "type": "repair_intent",
       "description": "Keep horns visible while avoiding umbrella intersection."
