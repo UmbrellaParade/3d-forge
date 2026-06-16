@@ -67,6 +67,7 @@ scene.add(axes);
 const loader = new GLTFLoader();
 let activeModel = null;
 let activeModelUrl = null;
+const controlElements = new Map();
 
 const state = {
   overlayVisible: true,
@@ -93,13 +94,13 @@ const tailGroup = createDevilTailTip();
 scene.add(tailGroup);
 
 const sliders = [
-  ["posX", "X", -2, 2, 0.01, () => state.fixConfig.tail.position[0], (v) => (state.fixConfig.tail.position[0] = v)],
-  ["posY", "Y", -1, 3, 0.01, () => state.fixConfig.tail.position[1], (v) => (state.fixConfig.tail.position[1] = v)],
-  ["posZ", "Z", -2, 2, 0.01, () => state.fixConfig.tail.position[2], (v) => (state.fixConfig.tail.position[2] = v)],
+  ["posX", "X", -10, 10, 0.01, () => state.fixConfig.tail.position[0], (v) => (state.fixConfig.tail.position[0] = v)],
+  ["posY", "Y", -10, 10, 0.01, () => state.fixConfig.tail.position[1], (v) => (state.fixConfig.tail.position[1] = v)],
+  ["posZ", "Z", -10, 10, 0.01, () => state.fixConfig.tail.position[2], (v) => (state.fixConfig.tail.position[2] = v)],
   ["rotX", "RX", -180, 180, 1, () => radToDeg(state.fixConfig.tail.rotation[0]), (v) => (state.fixConfig.tail.rotation[0] = degToRad(v))],
   ["rotY", "RY", -180, 180, 1, () => radToDeg(state.fixConfig.tail.rotation[1]), (v) => (state.fixConfig.tail.rotation[1] = degToRad(v))],
   ["rotZ", "RZ", -180, 180, 1, () => radToDeg(state.fixConfig.tail.rotation[2]), (v) => (state.fixConfig.tail.rotation[2] = degToRad(v))],
-  ["scale", "S", 0.1, 3, 0.01, () => state.fixConfig.tail.scale, (v) => (state.fixConfig.tail.scale = v)]
+  ["scale", "S", 0.05, 8, 0.01, () => state.fixConfig.tail.scale, (v) => (state.fixConfig.tail.scale = v)]
 ];
 
 buildControls();
@@ -180,6 +181,7 @@ function loadModel(url, label) {
       });
       scene.add(activeModel);
       fitCameraToObject(activeModel);
+      updatePositionControlRanges(activeModel);
       modelStatus.textContent = "Model ready";
     },
     undefined,
@@ -208,6 +210,7 @@ function showPlaceholder() {
   scene.add(activeModel);
   sourceLabel.textContent = "placeholder";
   fitCameraToObject(activeModel);
+  updatePositionControlRanges(activeModel);
 }
 
 function createDevilTailTip() {
@@ -261,32 +264,33 @@ function buildControls() {
     input.step = String(step);
     input.value = String(getValue());
 
-    const out = document.createElement("output");
-    out.value = formatNumber(getValue());
-    out.textContent = formatNumber(getValue());
+    const number = document.createElement("input");
+    number.type = "number";
+    number.step = String(step);
+    number.value = formatNumber(getValue());
+    number.ariaLabel = `${label} value`;
 
-    input.addEventListener("input", () => {
-      const next = Number(input.value);
+    const updateValue = (next) => {
       setValue(next);
-      out.value = formatNumber(next);
-      out.textContent = formatNumber(next);
       applyTailConfig();
-    });
+    };
 
-    row.append(labelEl, input, out);
+    input.addEventListener("input", () => updateValue(Number(input.value)));
+    number.addEventListener("change", () => updateValue(Number(number.value)));
+
+    row.append(labelEl, input, number);
     tailControls.append(row);
+    controlElements.set(id, { range: input, number });
   }
 }
 
 function refreshControls() {
   sliders.forEach(([id, , , , , getValue]) => {
-    const input = document.querySelector(`#${id}`);
-    const output = input?.nextElementSibling;
-    if (!input || !output) return;
+    const controls = controlElements.get(id);
+    if (!controls) return;
     const value = getValue();
-    input.value = String(value);
-    output.value = formatNumber(value);
-    output.textContent = formatNumber(value);
+    controls.range.value = String(value);
+    controls.number.value = formatNumber(value);
   });
 }
 
@@ -318,6 +322,34 @@ function fitCameraToObject(object) {
   camera.far = fitDistance * 100;
   camera.updateProjectionMatrix();
   controls.update();
+}
+
+function updatePositionControlRanges(object) {
+  const box = new THREE.Box3().setFromObject(object);
+  if (box.isEmpty()) return;
+
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  const span = Math.max(size.x, size.y, size.z, 1);
+  const margin = span * 3;
+  const ranges = {
+    posX: [center.x - margin, center.x + margin],
+    posY: [box.min.y - margin * 0.5, box.max.y + margin],
+    posZ: [center.z - margin, center.z + margin]
+  };
+
+  for (const [id, [min, max]] of Object.entries(ranges)) {
+    const controlsForId = controlElements.get(id);
+    if (!controlsForId) continue;
+    const currentValue = Number(controlsForId.range.value);
+    const nextMin = Math.min(min, currentValue - 1);
+    const nextMax = Math.max(max, currentValue + 1);
+    controlsForId.range.min = formatRangeLimit(nextMin);
+    controlsForId.range.max = formatRangeLimit(nextMax);
+    controlsForId.number.min = formatRangeLimit(nextMin);
+    controlsForId.number.max = formatRangeLimit(nextMax);
+  }
+  refreshControls();
 }
 
 function resize() {
@@ -355,4 +387,8 @@ function radToDeg(value) {
 
 function formatNumber(value) {
   return Number(value).toFixed(Math.abs(value) >= 10 ? 0 : 2);
+}
+
+function formatRangeLimit(value) {
+  return Number(value).toFixed(2);
 }
