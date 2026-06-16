@@ -18,15 +18,15 @@
       "type": "parametric_overlay",
       "shape": "heart_like_tail_tip",
       "material": {
-        "base_color": "#ff3a18",
-        "emission_color": "#ff5a24",
-        "emission_strength": 1.1
+        "base_color": "#ed9480",
+        "emission_color": null,
+        "emission_strength": 0
       },
       "default_transform": {
         "position": [
-          0.56,
-          -0.49,
-          0.08
+          0.53,
+          -0.51,
+          0.06
         ],
         "rotation": [
           0,

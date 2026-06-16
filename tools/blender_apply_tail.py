@@ -66,16 +66,22 @@ def heart_like_loop_points() -> list[Vector]:
     return [Vector((point.x, point.y, point.z)) for point in raw]
 
 
-def stem_points() -> list[Vector]:
+def connector_points() -> list[Vector]:
     return [
-        Vector((-1.75, 0.62, 0.04)),
-        Vector((-1.42, 0.34, 0.03)),
-        Vector((-1.06, 0.08, 0.02)),
-        Vector((-0.72, -0.10, 0.01)),
-        Vector((-0.45, -0.18, 0)),
-        Vector((-0.24, -0.08, 0)),
-        Vector((-0.13, 0.01, 0)),
+        Vector((-0.14, -0.01, 0)),
+        Vector((-0.07, 0.00, 0)),
+        Vector((0.01, 0.01, 0)),
     ]
+
+
+def soft_tip_points() -> list[Vector]:
+    # Small, rounded devil-tail cap that reads slightly heart-like without
+    # becoming a literal heart icon.
+    raw = []
+    raw += bezier((-0.03, 0.00, 0), (-0.01, 0.10, 0), (0.11, 0.13, 0), (0.20, 0.04, 0), 18)
+    raw += bezier((0.20, 0.04, 0), (0.12, 0.02, 0), (0.10, -0.03, 0), (0.18, -0.10, 0), 18)
+    raw += bezier((0.18, -0.10, 0), (0.08, -0.08, 0), (0.04, -0.04, 0), (-0.03, 0.00, 0), 18)
+    return [Vector((point.x, point.y, point.z)) for point in raw]
 
 
 def make_tube_mesh(
@@ -135,6 +141,37 @@ def make_tube_mesh(
     return obj
 
 
+def make_flat_tip_mesh(name: str, points: list[Vector], thickness: float, material, transform_matrix: Matrix):
+    center = sum(points, Vector()) / len(points)
+    vertices = []
+    faces = []
+
+    for z in (-thickness / 2, thickness / 2):
+        for point in points:
+            transformed = transform_matrix @ Vector((point.x, point.y, z))
+            vertices.append(tuple(gltf_to_blender(transformed)))
+
+    front_center_index = len(vertices)
+    vertices.append(tuple(gltf_to_blender(transform_matrix @ Vector((center.x, center.y, thickness / 2)))))
+    back_center_index = len(vertices)
+    vertices.append(tuple(gltf_to_blender(transform_matrix @ Vector((center.x, center.y, -thickness / 2)))))
+
+    count = len(points)
+    for index in range(count):
+        next_index = (index + 1) % count
+        faces.append((index, next_index, count + next_index, count + index))
+        faces.append((front_center_index, count + index, count + next_index))
+        faces.append((back_center_index, next_index, index))
+
+    mesh = bpy.data.meshes.new(name)
+    mesh.from_pydata(vertices, [], faces)
+    mesh.update()
+    obj = bpy.data.objects.new(name, mesh)
+    bpy.context.collection.objects.link(obj)
+    obj.data.materials.append(material)
+    return obj
+
+
 def add_tail_tip(config: dict):
     tail = config.get("tail", {})
     position = Vector(tail.get("position", [0, 0, 0]))
@@ -145,15 +182,14 @@ def add_tail_tip(config: dict):
     root = bpy.data.objects.new("codex_tail_tip_heart_like", None)
     bpy.context.collection.objects.link(root)
 
-    glow = make_material("codex_tail_neon_red", (1.0, 0.12, 0.04, 1.0), 1.8)
-    core = make_material("codex_tail_hot_core", (1.0, 0.72, 0.25, 1.0), 1.2)
+    tail_skin = make_material("codex_tail_blend_skin", (0.93, 0.58, 0.49, 1.0), 0.0)
+    tail_shadow = make_material("codex_tail_blend_shadow", (0.72, 0.34, 0.30, 1.0), 0.0)
 
-    loop = make_tube_mesh("codex_tail_heart_like_loop", heart_like_loop_points(), 0.018, glow, transform, True)
-    loop_core = make_tube_mesh("codex_tail_heart_like_core", heart_like_loop_points(), 0.007, core, transform, True, 8)
-    stem = make_tube_mesh("codex_tail_heart_like_stem", stem_points(), 0.019, glow, transform, False)
-    stem_core = make_tube_mesh("codex_tail_heart_like_stem_core", stem_points(), 0.007, core, transform, False, 8)
+    connector = make_tube_mesh("codex_tail_tip_connector", connector_points(), 0.035, tail_skin, transform, False, 16)
+    cap = make_flat_tip_mesh("codex_tail_soft_heart_like_cap", soft_tip_points(), 0.08, tail_skin, transform)
+    rim = make_tube_mesh("codex_tail_soft_heart_like_rim", soft_tip_points(), 0.008, tail_shadow, transform, True, 8)
 
-    for obj in [loop, loop_core, stem, stem_core]:
+    for obj in [connector, cap, rim]:
         obj.parent = root
 
 
@@ -178,21 +214,19 @@ def patch_glb_materials(path: Path) -> None:
     gltf = json.loads(chunks[0][1].decode("utf-8"))
     for material in gltf.get("materials", []):
         name = material.get("name", "")
-        if name == "codex_tail_neon_red":
+        if name == "codex_tail_blend_skin":
             material["pbrMetallicRoughness"] = {
-                "baseColorFactor": [1.0, 0.08, 0.02, 1.0],
+                "baseColorFactor": [0.93, 0.58, 0.49, 1.0],
                 "metallicFactor": 0,
-                "roughnessFactor": 0.22,
+                "roughnessFactor": 0.78,
             }
-            material["emissiveFactor"] = [1.0, 0.16, 0.03]
             material["doubleSided"] = True
-        elif name == "codex_tail_hot_core":
+        elif name == "codex_tail_blend_shadow":
             material["pbrMetallicRoughness"] = {
-                "baseColorFactor": [1.0, 0.72, 0.22, 1.0],
+                "baseColorFactor": [0.72, 0.34, 0.30, 1.0],
                 "metallicFactor": 0,
-                "roughnessFactor": 0.18,
+                "roughnessFactor": 0.84,
             }
-            material["emissiveFactor"] = [1.0, 0.45, 0.08]
             material["doubleSided"] = True
 
     json_bytes = json.dumps(gltf, separators=(",", ":")).encode("utf-8")
